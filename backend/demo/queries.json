@@ -1,0 +1,5 @@
+[
+  { "queryType": "EXACT_MATCH", "itemType": "Communication Equipment", "make": "Great Scott Gadgets", "model": "HackRF One" },
+  { "queryType": "EXACT_MATCH", "itemType": "Communication Equipment", "make": "Ettus Research", "model": "USRP B200mini" },
+  { "queryType": "EXACT_MATCH", "itemType": "Computers & Accessories", "make": "Dell", "model": "Latitude 5430" }
+]

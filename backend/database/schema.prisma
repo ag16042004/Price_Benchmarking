@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OFFICER
+  ADMIN
+}
+
+enum QueryType {
+  EXACT_MATCH
+  SPECIFICATION
+  SERVICE
+}
+
+enum TrustLevel {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum QueryStatus {
+  PENDING
+  COMPLETED
+  NO_DATA
+  FAILED
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(OFFICER)
+  createdAt    DateTime @default(now())
+  queries      Query[]
+}
+
+model ItemType {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
+  description String?
+  isActive    Boolean @default(true)
+  queries     Query[]
+}
+
+model ServiceType {
+  id           Int           @id @default(autoincrement())
+  name         String        @unique
+  description  String?
+  isActive     Boolean       @default(true)
+  queries      Query[]
+  curatedRates CuratedRate[]
+}
+
+model Source {
+  id         Int          @id @default(autoincrement())
+  domain     String       @unique
+  name       String
+  category   String?
+  trustLevel TrustLevel   @default(MEDIUM)
+  isActive   Boolean      @default(true)
+  updatedAt  DateTime     @updatedAt
+  results    ResultItem[]
+}
+
+model Query {
+  id             Int             @id @default(autoincrement())
+  userId         Int
+  user           User            @relation(fields: [userId], references: [id])
+  queryType      QueryType
+  itemName       String?
+  itemTypeId     Int?
+  itemType       ItemType?       @relation(fields: [itemTypeId], references: [id])
+  make           String?
+  model          String?
+  serviceTypeId  Int?
+  serviceType    ServiceType?    @relation(fields: [serviceTypeId], references: [id])
+  location       String?
+  description    String?
+  status         QueryStatus     @default(PENDING)
+  noDataFlag     Boolean         @default(false)
+  servedFromCache Boolean        @default(false)
+  diagnosis       Json?          // where a "no data" search dropped out (counts only)
+  createdAt      DateTime        @default(now())
+  specifications Specification[]
+  results        ResultItem[]
+
+  @@index([userId, id])
+}
+
+model Specification {
+  id      Int    @id @default(autoincrement())
+  queryId Int
+  query   Query  @relation(fields: [queryId], references: [id], onDelete: Cascade)
+  key     String
+  value   String
+
+  @@index([queryId])
+}
+
+// Aggregation (not composition): results are retained for audit
+model ResultItem {
+  id          Int       @id @default(autoincrement())
+  queryId     Int
+  query       Query     @relation(fields: [queryId], references: [id])
+  sourceId    Int?
+  source      Source?   @relation(fields: [sourceId], references: [id])
+  price       Decimal   @db.Decimal(14, 2)
+  currency    String    @default("INR")
+  sourceUrl   String
+  itemDetails String?
+  vintage     DateTime?
+  vintageBasis String?   // "page" | "header" | "retrieved": where the vintage date came from
+  matchScore  Float?     // 0..1: how well the page matched the query (1 = every criterion)
+  isMock      Boolean   @default(false)
+  isReplay    Boolean   @default(false) // served from a saved demo recording, not searched live
+  scrapedAt   DateTime  @default(now())
+
+  @@index([queryId])
+}
+
+// Admin-entered service rates (most service prices are quote-only, so scraping rarely finds them).
+// Every rate must carry a source link and a date so it stays auditable (NFR-6).
+model CuratedRate {
+  id            Int         @id @default(autoincrement())
+  serviceTypeId Int
+  serviceType   ServiceType @relation(fields: [serviceTypeId], references: [id])
+  location      String
+  description   String?
+  price         Decimal     @db.Decimal(14, 2)
+  currency      String      @default("INR")
+  sourceName    String
+  sourceUrl     String
+  vintage       DateTime
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+}
