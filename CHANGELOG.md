@@ -1,0 +1,31 @@
+# Changelog
+
+## 1.0.0: code freeze
+- **Sprint 6:** demo record/replay (real results only), evaluation script, runbook and viva Q&A, final docs.
+- **Sprint 5:** CI (lint, tests with Postgres and Redis, Docker build), single-container Dockerfile, Render blueprint, smoke-test script, UI journey tests, repository contract tests.
+- **Sprint 4:** admin console, history, dashboard, result cache, curated service rates, rate limiting and input hardening.
+- **Sprint 3:** specification and service queries, matching strategies, hardened date parsing.
+- **Sprint 2:** search providers (Brave, SearXNG), robots-aware scraper, extraction, product matching, BullMQ queue.
+- **Sprint 1:** authentication, exact make/model query, repositories, UI shell.
+- **Sprint 0:** scaffold, schema, docs.
+
+
+## Unreleased
+- Approved sources grown from 32 to 128 (all active) across RF/SDR/ham, global and Indian distributors, manufacturers, retailers, marketplaces, government portals and service directories. Retailers, marketplaces, government portals and directories are listing-only (pages never opened). Search covers up to 2 site groups of 8 sites plus the open web and Google Shopping; up to 40 results per search, 25 per page by default.
+- Admin, Sources: pagination, newest-first, type filter.
+- Specification names use a styled autocomplete instead of the browser's native list (components/ComboInput.jsx), matching the rest of the interface.
+- SearXNG: distinguishes "cannot reach the internet" from "engines are refusing us (CAPTCHA / too many requests)"; settings use 8 engines; guide gains a Docker explainer and ways to improve.
+- Prisma and its engine download are optional dependencies, so a failed download (ECONNRESET on a slow network) no longer breaks `npm install` for the no-database demo.
+- SearXNG: all-engines-timed-out is now reported as a failed search (clear message), not an empty "no data" answer. Settings: 12 s engine timeout, only product-capable engines, IPv6 off and fixed DNS in the compose file. `SEARCH_PROVIDER` may list several providers (`serper,searxng`): tried in order, a failing or empty one is skipped. `npm run doctor` tests each provider on its own.
+- `start-casper.bat` / `start-casper.sh`: one command creates .env, installs once and starts both servers.
+- Search rebuilt (discovery v2). Prices are now read from search listings (title + snippet) and, with Serper, from Google Shopping, so shops that refuse robots (HTTP 403) or draw prices with JavaScript no longer cause "no data". The search covers the open web, not only approved sites; rows from shops outside the approved list are flagged "Unlisted source" and "From listing" rows say the price should be confirmed on the page. Approved sites still get polite page visits as a fallback. Listing matching keeps the model strict but treats the maker as a confidence marker. New: price-from-text reader (ignores Save/EMI/shipping/cashback), `ALLOW_UNLISTED_SOURCES`, `SEARCH_COUNTRY`. Verified end to end through the real API against a SearXNG-shaped server.
+- Exact make/model matching: the model must still match exactly, but the make only needs supporting evidence (first word in the title/URL, or every word on the page), because shops rarely print "Great Scott Gadgets" or "Ettus Research". "No data" answers now carry a short diagnosis (pages found, on approved sources, refused by the site, opened, with a price) shown as "What we tried"; the terminal also lists why each page failed. New `diagnosis` column on Query (Prisma `db push` adds it).
+- Start-up is now explicit: the server prints which .env it read and the effective settings, and refuses to start in database mode without DATABASE_URL (instead of failing every sign-up with a 500). Doctor checks the .env file exists. The login page warns when the server cannot be reached.
+- "No reliable data found" is now explainable: every search logs a one-line funnel (`[engine] ... search returned N pages, M on approved sources | opened K ...`), the engine fills an optional trace, and `npm run diagnose` prints each stage with what it means.
+- Two more search providers that need no card: `serper` (Serper, Google results) and `tavily` (Tavily). Set SEARCH_PROVIDER plus SERPER_API_KEY or TAVILY_API_KEY. Doctor, env files and the run guide cover them; connector tests added.
+- No-card search: `docker-compose.search.yml` + `searxng/settings.yml` start a local SearXNG (JSON enabled, bound to this computer only). `.env.demo.example` and `docs/RUN_GUIDE.md` now use it by default; Brave is optional. `npm run doctor` always tests SearXNG (free) and explains the common failures.
+- Code review: all 17 findings fixed (see docs/Code_Review_Response.md): currency crash, 10-minute cache for "no data", Windows paths, 32-character production secret, optional invite code, redirects checked before they are requested, CSV formula protection, full history export, database indexes, exact city matching, bell removed, one-request categories, shared helpers, IScraper removed, streamed page cap, 700-character service description, 0 npm audit advisories.
+- Demo mode: `DEMO_SEED` creates an administrator, a government employee and four sample queries (flagged as sample data); `DEMO_QUICK_LOGIN` adds one-click sign-in (refused in production). `GET /api/auth/config`, `POST /api/auth/demo`. `npm run doctor` checks settings, search key, database, Redis and every endpoint. `.env.demo.example` and `docs/RUN_GUIDE.md`.
+- Registration now requires an official @gov.in address (subdomains such as dept.gov.in allowed; look-alike domains refused). Configurable with REGISTRATION_EMAIL_DOMAIN; empty turns it off. Sign-up form states the rule. Beta tag in the footer. Added docs/Mentor_Demo_Guide.md.
+- Custom dropdown component (`components/Select.jsx`) replaces every native select: raised trigger, frosted glass option panel, check on the selected item, keyboard support. Native `<datalist>` suggestions on the specification-name field are unchanged.
+- UI rebuilt from the 13 Stitch screens (blue/indigo glass, floating top navigation). Removed the landing page, dashboard and Reports placeholder; the Query Hub now carries the stats and recent queries. Modals for add/edit source, category and rate. Fixed modal focus-stealing bug. UI journey tests updated; 2 pass, lint clean.

@@ -1,0 +1,53 @@
+# Render Blueprint: New > Blueprint > pick this repo. See docs/DEPLOY.md.
+# Free tier caveats: the Postgres instance expires 30 days after creation, and the web service
+# sleeps after ~15 idle minutes (first request afterwards takes a while). Deploy close to the demo and warm it up first.
+services:
+  - type: web
+    name: casper
+    runtime: docker
+    dockerfilePath: ./docker/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /api/health
+    autoDeploy: false
+    envVars:
+      - key: DATA_STORE
+        value: prisma
+      - key: QUEUE
+        value: bull
+      - key: TRUST_PROXY
+        value: "1"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: casper-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: casper-redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      # Set these in the Render dashboard (never commit them):
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: SEARCH_PROVIDER
+        sync: false
+      - key: BRAVE_API_KEY
+        sync: false
+      - key: SCRAPER_USER_AGENT
+        sync: false
+      - key: DEMO_MODE
+        sync: false
+
+  - type: keyvalue
+    name: casper-redis
+    plan: free
+    maxmemoryPolicy: noeviction   # BullMQ needs jobs never evicted
+    ipAllowList: []               # internal connections only
+
+databases:
+  - name: casper-db
+    plan: free

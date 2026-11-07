@@ -1,0 +1,34 @@
+# SearXNG settings for CASPER: a private search engine on your own computer. No account, no key, no card.
+use_default_settings:
+  engines:
+    # Only engines that answer product searches well. The defaults also include Wikipedia, Wikidata and others that add
+    # nothing for prices, but still wait for their timeout and make every search slower.
+    keep_only:
+      - duckduckgo
+      - bing
+      - google
+      - startpage
+      - yahoo
+      - mojeek
+      - qwant
+      - brave
+
+server:
+  # Only used by this local instance. Make your own if you ever expose it: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+  secret_key: "761e6879b0251bf4327477f7fb7f6b0d04ba104dbab5bd5c2fd1bcad129063fa"
+  limiter: false          # the bot limiter would block CASPER's requests; the port is bound to this computer only
+  image_proxy: false
+
+search:
+  safe_search: 0
+  formats:
+    - html
+    - json                # CASPER reads the JSON format, so this line is required
+
+# The defaults give each engine 3 seconds, which a slow or busy connection (or Docker's network layer) often exceeds,
+# so every engine "times out" and the answer is empty. Be patient instead.
+outgoing:
+  request_timeout: 8.0
+  max_request_timeout: 25.0
+  pool_connections: 50
+  enable_http2: false

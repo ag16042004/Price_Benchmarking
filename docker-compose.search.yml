@@ -1,0 +1,20 @@
+# A local search engine for CASPER. No account, no API key, no payment details.
+#   docker compose -f docker-compose.search.yml up -d      start (add --force-recreate after changing this file or searxng/settings.yml)
+#   docker compose -f docker-compose.search.yml down       stop
+#   docker compose -f docker-compose.search.yml logs -f    watch what SearXNG is doing
+services:
+  searxng:
+    image: searxng/searxng:latest
+    restart: unless-stopped
+    ports: ["127.0.0.1:8080:8080"]      # reachable from this computer only
+    volumes: ["./searxng:/etc/searxng:rw"]
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8080/
+    # Docker Desktop on Windows often fails to resolve names or tries IPv6 first and waits for it to time out,
+    # which looks exactly like "every engine timed out". Fixed public DNS and IPv6 off remove both causes.
+    # If your network blocks outside DNS, delete the "dns:" lines (keep the sysctls).
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    sysctls:
+      net.ipv6.conf.all.disable_ipv6: "1"
